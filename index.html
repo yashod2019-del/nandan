@@ -3,191 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yashoda Law Book Reader Pro</title>
+    <title>Law Reader Pro - Full Scan</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
         video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; pointer-events: none; }
-        .status-layer {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            background: rgba(0, 0, 0, 0.85); padding: 25px 0;
-            text-align: center; z-index: 10; pointer-events: none;
-        }
-        #status { font-size: 24px; color: #f1c40f; font-weight: bold; padding: 0 15px; }
+        .status-layer { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.85); padding: 20px; text-align: center; color: #f1c40f; font-weight: bold; font-size: 20px; z-index: 10; }
     </style>
 </head>
 <body>
-
     <video id="video" autoplay playsinline></video>
-    <canvas id="canvasOverlay"></canvas>
-    <canvas id="captureCanvas" style="display:none;"></canvas>
-
-    <div class="status-layer">
-        <div id="status">Starting App...</div>
-    </div>
+    <div class="status-layer" id="status">Loading...</div>
 
 <script>
     const video = document.getElementById('video');
-    const canvasOverlay = document.getElementById('canvasOverlay');
-    const captureCanvas = document.getElementById('captureCanvas');
     const statusDiv = document.getElementById('status');
     let synth = window.speechSynthesis;
-    let isProcessing = false;
-    let lastSpokenText = "";
     let worker = null;
 
-    // ఆడియో నోటిఫికేషన్ కోసం డిజిటల్ బీప్ సౌండ్ ఫంక్షన్
-    function playBeepSound() {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // మొదటి బీప్
-        let osc1 = audioCtx.createOscillator();
-        let gain1 = audioCtx.createGain();
-        osc1.type = 'sine'; osc1.frequency.value = 880; // హై పిచ్ సౌండ్
-        gain1.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        osc1.connect(gain1); gain1.connect(audioCtx.destination);
-        osc1.start(); osc1.stop(audioCtx.currentTime + 0.15);
-
-        // రెండో బీప్ (కొద్దిగా గ్యాప్ తర్వాత)
-        setTimeout(() => {
-            let osc2 = audioCtx.createOscillator();
-            let gain2 = audioCtx.createGain();
-            osc2.type = 'sine'; osc2.frequency.value = 880;
-            gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc2.connect(gain2); gain2.connect(audioCtx.destination);
-            osc2.start(); osc2.stop(audioCtx.currentTime + 0.15);
-        }, 200);
-    }
-
     async function initOCR() {
-        statusDiv.innerText = "Loading AI Core...";
-        try {
-            // వేగంగా లోడ్ అవ్వడానికి మరియు పాత డేటా మెమరీలోనే దాచుకోవడానికి కాన్ఫిగరేషన్
-            worker = await Tesseract.createWorker('eng+tel', 1, {
-                cacheMethod: 'write'
-            });
-            
-            // హెడ్డింగ్స్ మరియు పూర్తి వాక్యాలను పక్కాగా చదవడం కోసం AUTO లేఅవుట్ మోడ్
-            await worker.setParameters({
-                tessedit_pageseg_mode: Tesseract.PSM.AUTO, 
-                preserve_interword_spaces: '1'
-            });
-
-            statusDiv.innerText = "App Ready! Place Book Under Camera...";
-            
-            // మీరు అడిగినట్టు వాయిస్ నోటిఫికేషన్ తీసేసి, బీప్ సౌండ్ పెట్టాను
-            playBeepSound();
-            
-            // ప్రతి 3 సెకన్లకు ఒకసారి స్కాన్ రన్ అవుతుంది
-            setInterval(autoCaptureAndProcess, 3000);
-        } catch (e) {
-            statusDiv.innerText = "AI Init Error. Refreshing...";
-            console.error(e);
-        }
-    }
-
-    async function initCamera() {
-        const constraints = {
-            video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-            audio: false
-        };
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            video.srcObject = stream;
-            await initOCR();
-        } catch (err) {
-            try {
-                const basicStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                video.srcObject = basicStream;
-                await initOCR();
-            } catch (basicErr) {
-                statusDiv.innerText = "Camera Access Denied.";
-            }
-        }
-    }
-
-    async function autoCaptureAndProcess() {
-        if (isProcessing || synth.speaking || !worker) return;
-
-        isProcessing = true;
-        statusDiv.innerText = "Scanning book page...";
-
-        const ctxCapture = captureCanvas.getContext('2d');
-        captureCanvas.width = video.videoWidth;
-        captureCanvas.height = video.videoHeight;
+        statusDiv.innerText = "Setting up AI...";
+        worker = await Tesseract.createWorker('eng+tel', 1);
         
-        // తెలుగు, ఇంగ్లీష్ అక్షరాల తప్పులు తగ్గించడానికి హై-కాంట్రాస్ట్ ఫిల్టర్స్
-        ctxCapture.filter = 'contrast(1.5) brightness(0.95)';
-        ctxCapture.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+        // తెలుగు అక్షరాల ఖచ్చితత్వం కోసం ఆప్టిమైజ్ చేసిన సెట్టింగ్స్
+        await worker.setParameters({
+            tessedit_pageseg_mode: Tesseract.PSM.AUTO_OSD, 
+            tessjs_create_pdf: '0',
+            user_defined_dpi: '300'
+        });
+        
+        statusDiv.innerText = "Ready to Read Full Page!";
+        setInterval(scanPage, 2500);
+    }
 
-        try {
-            const { data } = await worker.recognize(captureCanvas);
-            
-            const ctxOverlay = canvasOverlay.getContext('2d');
-            canvasOverlay.width = video.videoWidth;
-            canvasOverlay.height = video.videoHeight;
-            ctxOverlay.clearRect(0, 0, canvasOverlay.width, canvasOverlay.height);
+    async function scanPage() {
+        if (synth.speaking || !worker) return;
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
 
-            if (data && data.text) {
-                let text = data.text.trim();
-                let lines = data.lines;
-
-                if (text.length > 3 && text !== lastSpokenText) {
-                    lastSpokenText = text;
-                    statusDiv.innerText = "Reading Text...";
-
-                    // పైన ఉండే హెడ్డింగ్స్ మరియు కింద ఉండే లైన్ల చుట్టూ స్పష్టమైన ఎల్లో బాక్స్ హైలైట్ అవుతుంది
-                    if (lines && lines.length > 0) {
-                        ctxOverlay.strokeStyle = "#f1c40f"; 
-                        ctxOverlay.lineWidth = 5; 
-                        
-                        lines.forEach(line => {
-                            if(line.text.trim().length > 2) {
-                                const bbox = line.bbox;
-                                ctxOverlay.strokeRect(bbox.x0, bbox.y0, (bbox.x1 - bbox.x0), (bbox.y1 - bbox.y0));
-                            }
-                        });
-                    }
-
-                    readAloud(text);
-                } else if (text.length <= 3) {
-                    statusDiv.innerText = "Ready for Next Page...";
-                }
-            }
-        } catch (error) {
-            console.error("OCR Error:", error);
-        } finally {
-            isProcessing = false;
+        statusDiv.innerText = "Scanning...";
+        const { data } = await worker.recognize(canvas);
+        
+        // పేజీ మొత్తం చదవడానికి కండిషన్
+        if (data.text.trim().length > 20) {
+            statusDiv.innerText = "Reading Full Page...";
+            readAloud(data.text);
         }
     }
 
     function readAloud(text) {
         synth.cancel();
+        // తెలుగు అక్షరాల స్పష్టత కోసం ఫిల్టర్
+        let cleanText = text.replace(/[^a-zA-Z0-9\u0C00-\u0C7F\s.,-]/g, " ");
+        let utterance = new SpeechSynthesisUtterance(cleanText);
         
-        // ఇంగ్లీష్ పదాల మధ్య స్పేస్ (Spaces) మిస్ అవ్వకుండా క్లీన్ చేసే సరికొత్త పద్ధతి
-        let cleanText = text.replace(/\n/g, " ").replace(/\s+/g, " ").trim();
+        utterance.lang = /[\u0C00-\u0C7F]/.test(cleanText) ? "te-IN" : "en-US";
+        // తెలుగు అక్షరాలను తప్పులు లేకుండా చదవడానికి స్పీడ్ తగ్గించాను
+        utterance.rate = /[\u0C00-\u0C7F]/.test(cleanText) ? 0.75 : 0.85; 
         
-        if (cleanText.length === 0) return;
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        const hasTelugu = /[\u0C00-\u0C7F]/.test(cleanText);
-        
-        utterance.lang = hasTelugu ? "te-IN" : "en-US";
-        // పదాలు క్లియర్‌గా వినిపించడానికి స్పీడ్ రేట్ సెట్టింగ్
-        utterance.rate = hasTelugu ? 0.85 : 0.90; 
-        
-        utterance.onend = function() {
-            const ctxOverlay = canvasOverlay.getContext('2d');
-            ctxOverlay.clearRect(0, 0, canvasOverlay.width, canvasOverlay.height);
-            statusDiv.innerText = "Scan Complete. Ready...";
-        };
-
         synth.speak(utterance);
     }
 
-    window.onload = initCamera;
+    navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}}).then(stream => {
+        video.srcObject = stream;
+        initOCR();
+    });
 </script>
 </body>
 </html>
