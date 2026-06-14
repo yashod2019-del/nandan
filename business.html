@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+    <meta charset="UTF-8">
+    <title>Forever Business Lead Manager</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+        .tabs { display: flex; cursor: pointer; background: #ddd; padding: 10px; border-radius: 5px; }
+        .tab { padding: 10px 20px; background: #fff; margin-right: 5px; border-radius: 5px; }
+        .tab.active { background: #27ae60; color: white; }
+        .content { margin-top: 20px; padding: 20px; background: white; border-radius: 5px; min-height: 300px; }
+    </style>
+</head>
+<body>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('new')">కొత్త లీడ్స్</div>
+        <div class="tab" onclick="showTab('ready')">ప్రజెంటేషన్ రెడీ</div>
+        <div class="tab" onclick="showTab('closing')">క్లోజింగ్ స్టేజ్</div>
+    </div>
+
+    <div id="new" class="content"><h2>కొత్త లీడ్స్ జాబితా</h2><ul id="list-new"></ul></div>
+    <div id="ready" class="content" style="display:none;"><h2>ప్రజెంటేషన్ రెడీ లీడ్స్</h2><ul id="list-ready"></ul></div>
+    <div id="closing" class="content" style="display:none;"><h2>క్లోజింగ్ స్టేజ్ లీడ్స్</h2><ul id="list-closing"></ul></div>
+
+    <script>
+        function showTab(id) {
+            document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).style.display = 'block';
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="te">
+<head>
+    <meta charset="UTF-8">
+    <title>Forever Business Lead Manager</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+        .tabs { display: flex; cursor: pointer; background: #ddd; padding: 10px; border-radius: 5px; }
+        .tab { padding: 10px 20px; background: #fff; margin-right: 5px; border-radius: 5px; }
+        .tab.active { background: #27ae60; color: white; }
+        .content { margin-top: 20px; padding: 20px; background: white; border-radius: 5px; min-height: 300px; }
+    </style>
+</head>
+<body>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('new')">కొత్త లీడ్స్</div>
+        <div class="tab" onclick="showTab('ready')">ప్రజెంటేషన్ రెడీ</div>
+        <div class="tab" onclick="showTab('closing')">క్లోజింగ్ స్టేజ్</div>
+    </div>
+
+    <div id="new" class="content"><h2>కొత్త లీడ్స్ జాబితా</h2><ul id="list-new"></ul></div>
+    <div id="ready" class="content" style="display:none;"><h2>ప్రజెంటేషన్ రెడీ లీడ్స్</h2><ul id="list-ready"></ul></div>
+    <div id="closing" class="content" style="display:none;"><h2>క్లోజింగ్ స్టేజ్ లీడ్స్</h2><ul id="list-closing"></ul></div>
+
+    <script>
+        function showTab(id) {
+            document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).style.display = 'block';
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>
